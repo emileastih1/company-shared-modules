@@ -1,0 +1,58 @@
+# Maven
+target/
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Compiled class files
+*.class
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# IDE
+/.idea
+*.iml
+/.mvn
+.vscode/
+*.code-workspace
+.settings/
+.classpath
+.project
+
+# Build tools
+.gradle/
+build/
+out/
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
+*.bak
+
+# OpenAPI merged spec
+_merged_spec.yaml
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+#github
+.github/

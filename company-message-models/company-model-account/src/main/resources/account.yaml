@@ -1,0 +1,1093 @@
+openapi: 3.0.3
+info:
+  title: Account API (sample)
+  description: |
+    A comprehensive Account Management API for testing complex OpenAPI specifications.
+    This API provides endpoints for managing user accounts, transactions, and notifications.
+  version: 1.0.0
+  contact:
+    name: API Support Team
+    email: api-support@example.com
+    url: https://example.com/support
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: https://example.com/terms
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+  - url: https://staging-api.example.com/v1
+    description: Staging server
+  - url: http://localhost:8080/v1
+    description: Local development server
+
+tags:
+  - name: accounts
+    description: Account management operations
+  - name: transactions
+    description: Transaction processing and history
+  - name: notifications
+    description: Notification preferences and delivery
+
+paths:
+  /accounts:
+    get:
+      tags:
+        - accounts
+      summary: List all accounts
+      description: Retrieve a paginated list of all accounts with optional filtering
+      operationId: listAccounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          description: Filter by account status
+          required: false
+          schema:
+            $ref: '#/components/schemas/AccountStatus'
+        - name: createdAfter
+          in: query
+          description: Filter accounts created after this date
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successfully retrieved account list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountListResponse'
+              examples:
+                accountList:
+                  $ref: '#/components/examples/AccountListExample'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - accounts
+      summary: Create a new account
+      description: Create a new account with the provided information
+      operationId: createAccount
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+            examples:
+              personalAccount:
+                $ref: '#/components/examples/CreatePersonalAccountExample'
+              businessAccount:
+                $ref: '#/components/examples/CreateBusinessAccountExample'
+      responses:
+        '201':
+          description: Account created successfully
+          headers:
+            Location:
+              description: URL of the newly created account
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /accounts/{accountId}:
+    get:
+      tags:
+        - accounts
+      summary: Get account by ID
+      description: Retrieve detailed information about a specific account
+      operationId: getAccountById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdParam'
+        - name: includeTransactions
+          in: query
+          description: Include recent transactions in the response
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Account details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountDetailDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - accounts
+      summary: Update an existing account
+      description: Update account information (full update)
+      operationId: updateAccount
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountRequest'
+      responses:
+        '200':
+          description: Account updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags:
+        - accounts
+      summary: Partially update an account
+      description: Update specific fields of an account
+      operationId: patchAccount
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchAccountRequest'
+      responses:
+        '200':
+          description: Account patched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - accounts
+      summary: Delete an account
+      description: Soft delete an account (marks as inactive)
+      operationId: deleteAccount
+      security:
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdParam'
+        - name: force
+          in: query
+          description: Force permanent deletion
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '204':
+          description: Account deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /accounts/{accountId}/transactions:
+    get:
+      tags:
+        - transactions
+      summary: Get account transactions
+      description: Retrieve transaction history for a specific account
+      operationId: getAccountTransactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdParam'
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: type
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionType'
+        - name: minAmount
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: maxAmount
+          in: query
+          schema:
+            type: number
+            format: double
+      responses:
+        '200':
+          description: Transaction history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - transactions
+      summary: Create a new transaction
+      description: Process a new transaction for the account
+      operationId: createTransaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: Transaction created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: Insufficient funds or invalid transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /accounts/{accountId}/notifications:
+    get:
+      tags:
+        - notifications
+      summary: Get notification preferences
+      operationId: getNotificationPreferences
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdParam'
+      responses:
+        '200':
+          description: Notification preferences retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - notifications
+      summary: Update notification preferences
+      operationId: updateNotificationPreferences
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferences'
+      responses:
+        '200':
+          description: Preferences updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for service-to-service authentication
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://example.com/oauth/authorize
+          tokenUrl: https://example.com/oauth/token
+          scopes:
+            read:accounts: Read account information
+            write:accounts: Modify account information
+            delete:accounts: Delete accounts
+
+  parameters:
+    AccountIdParam:
+      name: accountId
+      in: path
+      description: Unique identifier of the account
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: "123e4567-e89b-12d3-a456-426614174000"
+
+  schemas:
+    AccountDto:
+      type: object
+      required:
+        - accountId
+        - owner
+        - status
+        - createdAt
+      properties:
+        accountId:
+          type: string
+          format: uuid
+          description: Unique identifier for the account
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        owner:
+          type: string
+          description: Name of the account owner
+          minLength: 1
+          maxLength: 255
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          description: Email address of the account owner
+          example: "john.doe@example.com"
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        accountType:
+          $ref: '#/components/schemas/AccountType'
+        balance:
+          type: number
+          format: double
+          description: Current account balance
+          minimum: 0
+          example: 1250.50
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: ISO 4217 currency code
+          example: "USD"
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2023-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2023-06-20T14:45:30Z"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional metadata as key-value pairs
+
+    AccountDetailDto:
+      allOf:
+        - $ref: '#/components/schemas/AccountDto'
+        - type: object
+          properties:
+            address:
+              $ref: '#/components/schemas/Address'
+            phoneNumbers:
+              type: array
+              items:
+                $ref: '#/components/schemas/PhoneNumber'
+              maxItems: 5
+            preferences:
+              $ref: '#/components/schemas/AccountPreferences'
+            statistics:
+              $ref: '#/components/schemas/AccountStatistics'
+            recentTransactions:
+              type: array
+              items:
+                $ref: '#/components/schemas/TransactionDto'
+              maxItems: 10
+
+    CreateAccountRequest:
+      type: object
+      required:
+        - owner
+        - email
+        - accountType
+      properties:
+        owner:
+          type: string
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        accountType:
+          $ref: '#/components/schemas/AccountType'
+        initialDeposit:
+          type: number
+          format: double
+          minimum: 0
+          default: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          default: "USD"
+        address:
+          $ref: '#/components/schemas/Address'
+        phoneNumbers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhoneNumber'
+        preferences:
+          $ref: '#/components/schemas/AccountPreferences'
+
+    UpdateAccountRequest:
+      type: object
+      required:
+        - owner
+        - email
+        - status
+      properties:
+        owner:
+          type: string
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        address:
+          $ref: '#/components/schemas/Address'
+        phoneNumbers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhoneNumber'
+
+    PatchAccountRequest:
+      type: object
+      minProperties: 1
+      properties:
+        owner:
+          type: string
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        address:
+          $ref: '#/components/schemas/Address'
+
+    AccountListResponse:
+      type: object
+      required:
+        - accounts
+        - pagination
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountDto'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+
+    AccountStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+        - SUSPENDED
+        - CLOSED
+        - PENDING_VERIFICATION
+      description: Current status of the account
+
+    AccountType:
+      type: string
+      enum:
+        - PERSONAL
+        - BUSINESS
+        - SAVINGS
+        - INVESTMENT
+        - JOINT
+      description: Type of account
+
+    Address:
+      type: object
+      required:
+        - street
+        - city
+        - country
+      properties:
+        street:
+          type: string
+          example: "123 Main Street"
+        street2:
+          type: string
+          example: "Apt 4B"
+        city:
+          type: string
+          example: "New York"
+        state:
+          type: string
+          example: "NY"
+        postalCode:
+          type: string
+          example: "10001"
+        country:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          description: ISO 3166-1 alpha-2 country code
+          example: "US"
+        coordinates:
+          $ref: '#/components/schemas/GeoCoordinates'
+
+    GeoCoordinates:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          example: 40.7128
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          example: -74.0060
+
+    PhoneNumber:
+      type: object
+      required:
+        - number
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - MOBILE
+            - HOME
+            - WORK
+            - FAX
+        number:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+          description: E.164 formatted phone number
+          example: "+12125551234"
+        verified:
+          type: boolean
+          default: false
+
+    AccountPreferences:
+      type: object
+      properties:
+        language:
+          type: string
+          pattern: '^[a-z]{2}$'
+          default: "en"
+          example: "en"
+        timezone:
+          type: string
+          example: "America/New_York"
+        notifications:
+          $ref: '#/components/schemas/NotificationPreferences'
+        privacy:
+          $ref: '#/components/schemas/PrivacySettings'
+
+    NotificationPreferences:
+      type: object
+      properties:
+        emailNotifications:
+          type: boolean
+          default: true
+        smsNotifications:
+          type: boolean
+          default: false
+        pushNotifications:
+          type: boolean
+          default: true
+        notificationTypes:
+          type: object
+          properties:
+            transactionAlerts:
+              type: boolean
+              default: true
+            balanceUpdates:
+              type: boolean
+              default: true
+            securityAlerts:
+              type: boolean
+              default: true
+            promotionalMessages:
+              type: boolean
+              default: false
+            accountUpdates:
+              type: boolean
+              default: true
+
+    PrivacySettings:
+      type: object
+      properties:
+        profileVisibility:
+          type: string
+          enum:
+            - PUBLIC
+            - FRIENDS
+            - PRIVATE
+          default: PRIVATE
+        showEmail:
+          type: boolean
+          default: false
+        showPhoneNumber:
+          type: boolean
+          default: false
+        dataSharing:
+          type: boolean
+          default: false
+
+    AccountStatistics:
+      type: object
+      properties:
+        totalTransactions:
+          type: integer
+          format: int64
+          example: 152
+        totalDeposits:
+          type: number
+          format: double
+          example: 5000.00
+        totalWithdrawals:
+          type: number
+          format: double
+          example: 3749.50
+        averageTransactionAmount:
+          type: number
+          format: double
+          example: 125.75
+        lastTransactionDate:
+          type: string
+          format: date-time
+
+    TransactionDto:
+      type: object
+      required:
+        - transactionId
+        - accountId
+        - type
+        - amount
+        - currency
+        - status
+        - timestamp
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        amount:
+          type: number
+          format: double
+          example: 100.00
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          example: "USD"
+        description:
+          type: string
+          maxLength: 500
+        status:
+          $ref: '#/components/schemas/TransactionStatus'
+        timestamp:
+          type: string
+          format: date-time
+        balanceAfter:
+          type: number
+          format: double
+        category:
+          type: string
+          example: "Shopping"
+        merchant:
+          $ref: '#/components/schemas/MerchantInfo'
+        metadata:
+          type: object
+          additionalProperties: true
+
+    TransactionType:
+      type: string
+      enum:
+        - DEPOSIT
+        - WITHDRAWAL
+        - TRANSFER
+        - PAYMENT
+        - REFUND
+        - FEE
+        - INTEREST
+
+    TransactionStatus:
+      type: string
+      enum:
+        - PENDING
+        - COMPLETED
+        - FAILED
+        - CANCELLED
+        - REVERSED
+
+    MerchantInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        location:
+          type: string
+        merchantId:
+          type: string
+
+    CreateTransactionRequest:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          default: "USD"
+        description:
+          type: string
+          maxLength: 500
+        category:
+          type: string
+        recipientAccountId:
+          type: string
+          format: uuid
+          description: For transfer transactions
+        scheduledDate:
+          type: string
+          format: date-time
+          description: For scheduled transactions
+
+    TransactionListResponse:
+      type: object
+      required:
+        - transactions
+        - summary
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionDto'
+        summary:
+          $ref: '#/components/schemas/TransactionSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+
+    TransactionSummary:
+      type: object
+      properties:
+        totalCount:
+          type: integer
+          format: int64
+        totalAmount:
+          type: number
+          format: double
+        totalDeposits:
+          type: number
+          format: double
+        totalWithdrawals:
+          type: number
+          format: double
+        currency:
+          type: string
+
+    PaginationInfo:
+      type: object
+      required:
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        page:
+          type: integer
+          minimum: 0
+          example: 0
+        size:
+          type: integer
+          minimum: 1
+          example: 20
+        totalElements:
+          type: integer
+          format: int64
+          example: 156
+        totalPages:
+          type: integer
+          example: 8
+        hasNext:
+          type: boolean
+          example: true
+        hasPrevious:
+          type: boolean
+          example: false
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+        traceId:
+          type: string
+          format: uuid
+
+    ErrorDetail:
+      type: object
+      properties:
+        field:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        rejectedValue:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Conflict:
+      description: Conflict - resource already exists or cannot be modified
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  examples:
+    AccountListExample:
+      value:
+        accounts:
+          - accountId: "123e4567-e89b-12d3-a456-426614174000"
+            owner: "John Doe"
+            email: "john.doe@example.com"
+            status: "ACTIVE"
+            accountType: "PERSONAL"
+            balance: 1250.50
+            currency: "USD"
+            createdAt: "2023-01-15T10:30:00Z"
+            updatedAt: "2023-06-20T14:45:30Z"
+          - accountId: "223e4567-e89b-12d3-a456-426614174001"
+            owner: "Jane Smith"
+            email: "jane.smith@example.com"
+            status: "ACTIVE"
+            accountType: "BUSINESS"
+            balance: 5000.00
+            currency: "USD"
+            createdAt: "2023-02-10T08:15:00Z"
+            updatedAt: "2023-06-19T11:20:00Z"
+        pagination:
+          page: 0
+          size: 20
+          totalElements: 2
+          totalPages: 1
+          hasNext: false
+          hasPrevious: false
+
+    CreatePersonalAccountExample:
+      value:
+        owner: "John Doe"
+        email: "john.doe@example.com"
+        accountType: "PERSONAL"
+        initialDeposit: 100.00
+        currency: "USD"
+        address:
+          street: "123 Main Street"
+          city: "New York"
+          state: "NY"
+          postalCode: "10001"
+          country: "US"
+        phoneNumbers:
+          - type: "MOBILE"
+            number: "+12125551234"
+
+    CreateBusinessAccountExample:
+      value:
+        owner: "Acme Corporation"
+        email: "finance@acme.com"
+        accountType: "BUSINESS"
+        initialDeposit: 10000.00
+        currency: "USD"
+        address:
+          street: "456 Business Blvd"
+          street2: "Suite 200"
+          city: "San Francisco"
+          state: "CA"
+          postalCode: "94102"
+          country: "US"
+        phoneNumbers:
+          - type: "WORK"
+            number: "+14155551234"
